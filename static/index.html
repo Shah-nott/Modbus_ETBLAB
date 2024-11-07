@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modbus Monitor and Control</title>
+    <style>
+        /* General page styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #0056b3;
+            text-align: center;
+        }
+
+        .device-section {
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+            padding: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .device-section h2 {
+            color: #333;
+            border-bottom: 2px solid #0056b3;
+            padding-bottom: 10px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        input, button {
+            padding: 10px;
+            margin-bottom: 10px;
+            margin-right: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            width: calc(100% - 22px);
+        }
+
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #004494;
+        }
+
+        pre {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            input, button {
+                width: calc(100% - 22px);
+            }
+        }
+
+    </style>
+    <script>
+        async function readBatteryData() {
+            const response = await fetch('/read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device: 'battery_byd', address: 30845 }) // Example: address for SoC
+            });
+            const data = await response.json();
+            document.getElementById('battery-data').textContent = "Battery Percentage: " + data.decoded['32int'] + "%";
+        }
+
+        async function readPVData() {
+            const response = await fetch('/read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device: 'pv_sunnyboy', address: 30775 }) // Example: address for current power output
+            });
+            const data = await response.json();
+            document.getElementById('pv-data').textContent = "Current Power Output: " + data.decoded['32int'] + " W";
+        }
+
+        async function setBatteryDischargeLimit() {
+            const value = document.getElementById('battery-discharge-limit').value;
+            const response = await fetch('/write', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device: 'battery_byd', address: 31009, values: [parseInt(value)] }) // Example: address for lower discharge limit
+            });
+
+            const result = await response.json();
+            document.getElementById('battery-data').textContent = "Discharge Limit Set to: " + value + "%";
+        }
+    </script>
+</head>
+<body>
+    <h1>Modbus Monitor and Control</h1>
+
+    <div class="device-section">
+        <h2>SMA PV Inverter</h2>
+        <button onclick="readPVData()">Get Current Power Output</button>
+        <pre id="pv-data">Current Power Output will appear here</pre>
+    </div>
+
+    <div class="device-section">
+        <h2>SMA Battery</h2>
+        <button onclick="readBatteryData()">Get Battery Percentage</button>
+        <pre id="battery-data">Battery percentage will appear here</pre>
+
+        <label for="battery-discharge-limit">Set Lower Discharge Limit (%):</label>
+        <input id="battery-discharge-limit" type="number" placeholder="Enter discharge limit">
+        <button onclick="setBatteryDischargeLimit()">Set Discharge Limit</button>
+    </div>
+</body>
+</html>
